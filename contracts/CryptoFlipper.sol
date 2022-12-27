@@ -25,24 +25,24 @@ contract CryptoFlipper is VRFConsumerBaseV2 {
         CALCULATING
     }
 
-
     VRFCoordinatorV2Interface private immutable i_vrfCoordinator;
     cryptoFlipState private s_cryptoFlipState;
     bytes32 private immutable i_gasLane;
     uint256 private s_lastTimeStamp;
+    uint256 private recentResult;
     uint64 private immutable i_subscriptionId;
     uint32 private immutable i_callbackGasLimit;
     uint32 private constant NUM_WORDS = 1;
     uint16 private constant REQUEST_CONFIRMATIONS = 4;
-    address payable private owner;
+    address payable public immutable owner;
     address private currentContract;
     address payable private headsPlayer;
     address payable private tailsPlayer;
     address payable private winner;
     address private immutable nullAddress = address(0x0);
-    address private s_winner;
-    address[] public s_allWinners;
-    address[] public s_funders;
+    address private s_recentWinner;
+    address[] private s_allWinners;
+    address[] private s_funders;
     address[] private deprecatedContracts;
     bool private failure = false;
 
@@ -134,12 +134,13 @@ contract CryptoFlipper is VRFConsumerBaseV2 {
         uint256[] memory randomWords
     ) internal override {
         uint256 headsOrTails = randomWords[0] % 2;
+        recentResult = headsOrTails;
         if (headsOrTails == 0) {
             winner = headsPlayer;
         } else {
             winner = tailsPlayer;
         }
-        s_winner = winner;
+        s_recentWinner = winner;
         s_allWinners.push(winner);
         deprecatedContracts.push(currentContract);
         currentContract = nullAddress;
@@ -151,6 +152,54 @@ contract CryptoFlipper is VRFConsumerBaseV2 {
         s_lastTimeStamp = block.timestamp;
         s_cryptoFlipState = cryptoFlipState.OPEN;
         emit WinnerPicked(winner);
+    }
+
+    function getLastFlip() public view returns (string memory) {
+        if (recentResult == 0) {
+            return "Heads";
+        } else {
+            return "Tails";
+        }
+    }
+
+    function getCryptoFlipBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function getCurrentContract() public view returns (address) {
+        return currentContract;
+    }
+
+    function getDeprecatedContracts() public view returns (address[] memory) {
+        return deprecatedContracts;
+    }
+
+    function getCryptoFlipState() public view returns (cryptoFlipState) {
+        return s_cryptoFlipState;
+    }
+
+    function getNumWords() public pure returns (uint256) {
+        return NUM_WORDS;
+    }
+
+    function getRequestConfirmations() public pure returns (uint256) {
+        return REQUEST_CONFIRMATIONS;
+    }
+
+    function getRecentWinner() public view returns (address) {
+        return s_recentWinner;
+    }
+
+    function getLastTimestamp() public view returns (uint256) {
+        return s_lastTimeStamp;
+    }
+
+    function getWinners() public view returns (address[] memory) {
+        return s_allWinners;
+    }
+
+    function isFailed() public view returns (bool) {
+        return failure;
     }
 
 }
